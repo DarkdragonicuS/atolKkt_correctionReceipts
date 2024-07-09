@@ -358,6 +358,7 @@ def getTagStructure(fptr,tagName,tagValue,tagNumber,tagType):
                 "tagNumber": tagNumber,
                 "tagType": tagType}
 
+# Чек прихода
 def receiptSell(fptr,positions,payments):
     ReceiptSellOpen(fptr)
     sum = 0
