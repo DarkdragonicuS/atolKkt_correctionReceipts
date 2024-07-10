@@ -1,4 +1,4 @@
-import json,os,datetime,requests,csv
+import json,os,datetime,requests,csv,zipfile,io,pytz
 from dateutil import parser
 from libfptr10 import IFptr
 def readNextRecord(fptr, recordsID):
@@ -68,8 +68,7 @@ def ReceiptSellOpen(fptr):
     fptr.openReceipt()
 
 # Открытие чека коррекции прихода
-def ReceiptSellCorrectionOpen(fptr,correctionDate):
-
+def ReceiptSellCorrectionOpen(fptr,correctionDate,additionalTags=[]):
     fptr.setParam(1178, correctionDate)
     #fptr.setParam(1179, "№1234")
     fptr.utilFormTlv()
@@ -77,11 +76,12 @@ def ReceiptSellCorrectionOpen(fptr,correctionDate):
     fptr.setParam(IFptr.LIBFPTR_PARAM_RECEIPT_TYPE, IFptr.LIBFPTR_RT_SELL_CORRECTION)
     fptr.setParam(1173, 0)
     fptr.setParam(1174, correctionInfo)
+    for tag in additionalTags:
+        fptr.setParam(tag['tagNumber'],tag['tagValue'])
     fptr.openReceipt()
 
 # Открытие чека коррекции возврата прихода
-def ReceiptSellReturnCorrectionOpen(fptr,correctionDate):
-
+def ReceiptSellReturnCorrectionOpen(fptr,correctionDate,additionalTags=[]):
     fptr.setParam(1178, correctionDate)
     #fptr.setParam(1179, "№1234")
     fptr.utilFormTlv()
@@ -89,16 +89,18 @@ def ReceiptSellReturnCorrectionOpen(fptr,correctionDate):
     fptr.setParam(IFptr.LIBFPTR_PARAM_RECEIPT_TYPE, IFptr.LIBFPTR_RT_SELL_RETURN_CORRECTION)
     fptr.setParam(1173, 0)
     fptr.setParam(1174, correctionInfo)
+    for tag in additionalTags:
+        fptr.setParam(tag['tagNumber'],tag['tagValue'])    
     fptr.openReceipt()
 
 # Позиция в чеке
-def registration(fptr,wareName,price,quantity,sum,tax):
+def registration(fptr,wareName,price,quantity,sum,tax,measureUnit=0):
     fptr.setParam(IFptr.LIBFPTR_PARAM_COMMODITY_NAME,wareName)
     fptr.setParam(IFptr.LIBFPTR_PARAM_PRICE,price)
     fptr.setParam(IFptr.LIBFPTR_PARAM_QUANTITY,quantity)
     fptr.setParam(IFptr.LIBFPTR_PARAM_POSITION_SUM,sum)
     fptr.setParam(IFptr.LIBFPTR_PARAM_TAX_TYPE,tax)
-    fptr.setParam(2108,0)
+    fptr.setParam(2108,measureUnit)
     fptr.registration()
 
 # Оплата в чеке
@@ -363,29 +365,38 @@ def receiptSell(fptr,positions,payments):
     ReceiptSellOpen(fptr)
     sum = 0
     for position in positions:
-        registration(fptr,position['wareName'],position['price'],position['quantity'],position['sum'],position['tax'])
+        if 'measureUnit' in position:
+            registration(fptr,position['wareName'],position['price'],position['quantity'],position['sum'],position['tax'],position['measureUnit'])
+        else:
+            registration(fptr,position['wareName'],position['price'],position['quantity'],position['sum'],position['tax'])
         sum += position['sum']
     for pay in payments:
         payment(fptr,pay['type'],pay['sum'])
     receiptTotal(fptr,sum)
     return receiptClose(fptr)
 
-def receiptSellCorrection(fptr,correctionDate,positions,payments):
-    ReceiptSellCorrectionOpen(fptr,correctionDate)
+def receiptSellCorrection(fptr,correctionDate,positions,payments,additionalTags=[]):
+    ReceiptSellCorrectionOpen(fptr,correctionDate,additionalTags)
     sum = 0
     for position in positions:
-        registration(fptr,position['name'],position['price'],position['quantity'],position['sum'],position['tax'])
+        if 'measureUnit' in position:
+            registration(fptr,position['name'],position['price'],position['quantity'],position['sum'],position['tax'],position['measureUnit'])
+        else:
+            registration(fptr,position['name'],position['price'],position['quantity'],position['sum'],position['tax'])
         sum += position['sum']
     for pay in payments:
         payment(fptr,pay['type'],pay['sum'])
     receiptTotal(fptr,sum)
     return receiptClose(fptr)
 
-def receiptSellReturnCorrection(fptr,correctionDate,positions,payments):
-    ReceiptSellReturnCorrectionOpen(fptr,correctionDate)
+def receiptSellReturnCorrection(fptr,correctionDate,positions,payments,additionalTags=[]):
+    ReceiptSellReturnCorrectionOpen(fptr,correctionDate,additionalTags)
     sum = 0
     for position in positions:
-        registration(fptr,position['name'],position['price'],position['quantity'],position['sum'],position['tax'])
+        if 'measureUnit' in position:
+            registration(fptr,position['name'],position['price'],position['quantity'],position['sum'],position['tax'],position['measureUnit'])
+        else:
+            registration(fptr,position['name'],position['price'],position['quantity'],position['sum'],position['tax'])
         sum += position['sum']
     for pay in payments:
         payment(fptr,pay['type'],pay['sum'])
@@ -442,33 +453,47 @@ def testOFDRequest():
 def getReceiptFromTlv(tlv):  
     wares = []
     payments = []      
+    buyerPhoneOrAddress = ''
     receiptType = tlv['1054']
     fdNumber = tlv['1040']
     if "1031" in tlv:
         payments.append({"type":IFptr.LIBFPTR_PT_CASH,"sum":tlv["1031"]/100})
     if "1081" in tlv:
         payments.append({"type":IFptr.LIBFPTR_PT_ELECTRONICALLY,"sum":tlv["1081"]/100})
+    if "1008" in tlv:
+        buyerPhoneOrAddress = tlv['1008']
+    
+    taxType = tlv['1055']
     fdDate = parser.parse(tlv['1012'])
     receiptTotal = tlv['1020'] / 100
     for ware in tlv["1059"]:
+        measureUnit = 0
+        if '2108' in ware:
+            measureUnit = ware['2108']
         wares.append({
             "name": ware['1030'],
             "price": ware['1079'] / 100,
             "quantity": ware['1023'],
             "sum": ware['1043'] / 100,
-            "tax": ware['1199']
+            "tax": ware['1199'],
+            "measureUnit": measureUnit
         })
 
-    receipt = {"receiptType": receiptType,
+    receipt = {
+            "receiptType": receiptType,
             "fdNumber": fdNumber,
             "fdDate": fdDate,
             "total": receiptTotal,
+            "buyerPhoneOrAddress": buyerPhoneOrAddress,
+            "taxType": taxType,
             "wares": wares,
-            "payments": payments}
+            "payments": payments
+        }
     
     return receipt
 
-def receiptOfdRead(kktAgreementId,docNumber,customFnNumber,cookie):
+# OFD.RU
+def receiptOfd1Read(kktAgreementId,docNumber,customFnNumber,cookie):
     receipt = None
     url = 'https://lk.ofd.ru/api/Customer/GetJsonDoc'
     headers = {
@@ -492,15 +517,126 @@ def receiptOfdRead(kktAgreementId,docNumber,customFnNumber,cookie):
 
     return receipt
 
-def loadOfdDocs(fdLinksPath):
+def getTlvFromOfd2Json(responseObj):
+    keys = []
+    for key in responseObj:
+        keys.append(key)
+    for key in keys:
+        if key == "fiscalDocumentFormatVer":
+            responseObj['1209'] = responseObj.pop(key)
+        elif key == "fiscalDriveNumber":
+            responseObj['1041'] = responseObj.pop(key)
+        elif key == "kktRegId":
+            responseObj['1037'] = responseObj.pop(key)
+        elif key == "userInn":
+            responseObj['1018'] = responseObj.pop(key)
+        elif key == "fiscalDocumentNumber":
+            responseObj['1040'] = responseObj.pop(key)
+        elif key == "dateTime":
+            responseObj['1012'] = datetime.datetime.fromtimestamp(responseObj.pop(key) - 3600*11).isoformat()
+        elif key == "fiscalSign":
+            responseObj['1077'] = responseObj.pop(key)
+        elif key == "shiftNumber":
+            responseObj['1038'] = responseObj.pop(key)
+        elif key == "requestNumber":
+            responseObj['1042'] = responseObj.pop(key)
+        elif key == "operationType":
+            responseObj['1054'] = responseObj.pop(key)
+        elif key == "totalSum":
+            responseObj['1020'] = responseObj.pop(key)
+        elif key == "buyerPhoneOrAddress":
+            responseObj['1008'] = responseObj.pop(key)
+        elif key == "items":
+            responseObj['1059'] = responseObj.pop(key)
+        elif key == "cashTotalSum":
+            responseObj['1031'] = responseObj.pop(key)
+        elif key == "ecashTotalSum":
+            responseObj['1081'] = responseObj.pop(key)
+        elif key == "prepaidSum":
+            responseObj['1215'] = responseObj.pop(key)
+        elif key == "creditSum":
+            responseObj['1216'] = responseObj.pop(key)
+        elif key == "provisionSum":
+            responseObj['1217'] = responseObj.pop(key)
+        elif key == "ndsNo":
+            responseObj['1105'] = responseObj.pop(key)
+        elif key == "taxationType":
+            responseObj['1055'] = responseObj.pop(key)
+        elif key == "operator":
+            responseObj['1021'] = responseObj.pop(key)
+        elif key == "operatorInn":
+            responseObj['1203'] = responseObj.pop(key)
+        elif key == "retailAddress":
+            responseObj['1009'] = responseObj.pop(key)
+        elif key == "retailPlace":
+            responseObj['1187'] = responseObj.pop(key)
+    
+    for item in responseObj['1059']:
+        keys = []
+        for key in item:
+            keys.append(key)
+        for key in keys:
+            if key == "measureUnit":
+                item['2108'] = item.pop(key)
+            elif key == "name":
+                item['1030'] = item.pop(key)
+            elif key == "price":
+                item['1079'] = item.pop(key)
+            elif key == "quantity":
+                item['1023'] = item.pop(key)
+            elif key == "sum":
+                item['1043'] = item.pop(key)
+            elif key == "nds":
+                item['1199'] = item.pop(key)
+            elif key == "paymentType":
+                item['1214'] = item.pop(key)
+            elif key == "productType":
+                item['1212'] = item.pop(key)
+
+    return responseObj
+# PLATFORMAOFD.RU
+def receiptOfd2Read(id,date,fp,cookie):
+    receipt = None
+    url = 'https://lk.platformaofd.ru/web/auth/cheques/json'
+    headers = {
+        'User-Agent': 'Python',
+        'Cookie': cookie
+    }
+    params = {
+        'id': id,
+        'date': date,
+        'fp': fp
+    }
+    try:
+        response = requests.get(url=url,headers=headers,params=params)
+        iostring = io.BytesIO(response.content)
+        zipJson = zipfile.ZipFile(iostring)
+        responseObj = json.loads(zipJson.read('cheque_' + id + '.txt'))
+        tlv = getTlvFromOfd2Json(responseObj)
+        receipt = getReceiptFromTlv(tlv)
+    except ConnectionError:
+        pass
+    except:
+        pass
+
+    return receipt
+
+# Загрузка чеков с ЛК ОФД
+# ofdProvider:
+#   1 - OFD.RU
+#   2 - PLATFORMAOFD.RU    
+def loadOfdDocs(fdLinksPath,ofdProvider):
     receipts = []
-    cookie = input("OFD.RU Cookie: ")
+    cookie = input("OFD Cookie: ")
     with open(fdLinksPath, newline='') as csvfile:
         params = csv.DictReader(csvfile, delimiter=',')
         for param in params:
             receiptNotLoaded = True
             while receiptNotLoaded:
-                receipt = receiptOfdRead(param['KktAgreementId'],param['DocNumber'],param['CustomFnNumber'],cookie)
+                if ofdProvider == 1:
+                    receipt = receiptOfd1Read(param['KktAgreementId'],param['DocNumber'],param['CustomFnNumber'],cookie)
+                elif ofdProvider == 2:
+                    receipt = receiptOfd2Read(param['id'],param['date'],param['fp'],cookie)
                 if receipt != None:
                     receiptNotLoaded = False                
             receipts.append(receipt)
@@ -508,67 +644,117 @@ def loadOfdDocs(fdLinksPath):
 
 #testOFDRequest()
 
+def addMeasureUnit(fdLinks,ofdProvider):
+    #ofdDocuments = loadOfdDocs(fdLinks,1)
+    ofdDocuments = loadOfdDocs(fdLinks,ofdProvider)
+    #fd1 = int(input("Введите начальный ФД для коррекции: "))
+    #fd2 = int(input("Введите конечный ФД для коррекции: "))
+    fptr = IFptr("")
+    version = fptr.version()
+
+    fptr.setSingleSetting(IFptr.LIBFPTR_SETTING_MODEL, str(IFptr.LIBFPTR_MODEL_ATOL_AUTO))
+    fptr.setSingleSetting(IFptr.LIBFPTR_SETTING_PORT, str(IFptr.LIBFPTR_PORT_USB))
+    fptr.applySingleSettings()
+
+    fptr.open()
+
+    # ware1 = {"wareName": "AIME Гель д/душа с дозатором Delicate-уход 700мл",
+    #         "price": 122.2,
+    #         "quantity": 3,
+    #         "sum": 366.6,
+    #         "tax": 6}
+    # ware2 = {"wareName": "AIME Крем-мыло д/интим.ухода с экст.жасмина 300 мл",
+    #         "price": 78.6,
+    #         "quantity": 2,
+    #         "sum": 157.2,
+    #         "tax": 6}
+    # wares = [ware1,ware2]
+
+
+    # payment1 = {"type": IFptr.LIBFPTR_PT_CASH, "sum": 500}
+    # payment2 = {"type": IFptr.LIBFPTR_PT_ELECTRONICALLY, "sum": 23.8}
+    # payments = [payment1,payment2]
+
+    #receiptSell(fptr,wares,payments)
+    #receiptSellCorrection(fptr,datetime.datetime(2024, 2, 10),wares,payments)
+    #receiptSellReturnCorrection(fptr,datetime.datetime(2024, 2, 10),wares,payments)
+    #lastFd = getLastFd(fptr)
+    #fdNumber = 75
+    for receipt in ofdDocuments:
+        # fptr.setParam(IFptr.LIBFPTR_PARAM_FN_DATA_TYPE, IFptr.LIBFPTR_FNDT_DOCUMENT_BY_NUMBER)
+        # fptr.setParam(IFptr.LIBFPTR_PARAM_DOCUMENT_NUMBER, fdNumber)
+        # fptr.fnQueryData()
+        # fdType = fptr.getParamInt(IFptr.LIBFPTR_PARAM_FN_DOCUMENT_TYPE)
+        # if fdType in [IFptr.LIBFPTR_FN_DOC_RECEIPT]:
+        #     receiptType = fptr.getParamInt(1054)
+        #     receipt = receiptsRead(fptr,fdNumber)
+        #     # Приход
+        #     if receiptType == 1:
+        #         receiptSellCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
+        #         pass
+        #     # Возврат прихода
+        #     elif receiptType == 2:
+        #         receiptSellReturnCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
+        print("#" + str(receipt['fdNumber']))
+        receiptType = receipt['receiptType']
+        closeResult = -1
+        while closeResult != 0:
+            # Приход
+            if receiptType == 1:
+                closeResult = receiptSellCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
+            # Возврат прихода
+            elif receiptType == 2:
+                closeResult = receiptSellReturnCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
+
+    #receiptShowReadable(fptr,lastFd)
+
+    fptr.close()
+
+def changeTaxType(fdLinks,ofdProvider,newTaxType):
+    ofdDocuments = loadOfdDocs(fdLinks,ofdProvider)
+    fptr = IFptr("")
+    version = fptr.version()
+
+    fptr.setSingleSetting(IFptr.LIBFPTR_SETTING_MODEL, str(IFptr.LIBFPTR_MODEL_ATOL_AUTO))
+    fptr.setSingleSetting(IFptr.LIBFPTR_SETTING_PORT, str(IFptr.LIBFPTR_PORT_USB))
+    fptr.applySingleSettings()
+
+    fptr.open()
+
+    for receipt in ofdDocuments:
+        print("#" + str(receipt['fdNumber']))
+        receiptType = receipt['receiptType']
+        closeResult = -1
+        buyerPhoneOrAddress = receipt['buyerPhoneOrAddress']
+        taxType = receipt['taxType']
+        while closeResult != 0:
+            #Обратная операция
+            additionalTags = []
+            additionalTags.append({"tagNumber": 1055,"tagValue": taxType})
+            if buyerPhoneOrAddress != '':
+                additionalTags.append({"tagNumber": 1008,"tagValue": buyerPhoneOrAddress})
+            # Приход
+            if receiptType == 1:
+                closeResult = receiptSellReturnCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'],additionalTags)
+            # Возврат прихода
+            elif receiptType == 2:
+                closeResult = receiptSellCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'],additionalTags)
+            
+            #Коррекция
+            additionalTags = []
+            additionalTags.append({"tagNumber": 1055,"tagValue": newTaxType})
+            if buyerPhoneOrAddress != '':
+                additionalTags.append({"tagNumber": 1008,"tagValue": buyerPhoneOrAddress})
+            # Приход
+            if receiptType == 1:
+                closeResult = receiptSellCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'],additionalTags)
+            # Возврат прихода
+            elif receiptType == 2:
+                closeResult = receiptSellReturnCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'],additionalTags)
+
+    fptr.close()
+
 fdLinks = "C:\\fdLinks.csv"
-ofdDocuments = loadOfdDocs(fdLinks)
-#fd1 = int(input("Введите начальный ФД для коррекции: "))
-#fd2 = int(input("Введите конечный ФД для коррекции: "))
-fptr = IFptr("")
-version = fptr.version()
-
-fptr.setSingleSetting(IFptr.LIBFPTR_SETTING_MODEL, str(IFptr.LIBFPTR_MODEL_ATOL_AUTO))
-fptr.setSingleSetting(IFptr.LIBFPTR_SETTING_PORT, str(IFptr.LIBFPTR_PORT_USB))
-fptr.applySingleSettings()
-
-fptr.open()
-
-# ware1 = {"wareName": "AIME Гель д/душа с дозатором Delicate-уход 700мл",
-#         "price": 122.2,
-#         "quantity": 3,
-#         "sum": 366.6,
-#         "tax": 6}
-# ware2 = {"wareName": "AIME Крем-мыло д/интим.ухода с экст.жасмина 300 мл",
-#         "price": 78.6,
-#         "quantity": 2,
-#         "sum": 157.2,
-#         "tax": 6}
-# wares = [ware1,ware2]
-
-
-# payment1 = {"type": IFptr.LIBFPTR_PT_CASH, "sum": 500}
-# payment2 = {"type": IFptr.LIBFPTR_PT_ELECTRONICALLY, "sum": 23.8}
-# payments = [payment1,payment2]
-
-#receiptSell(fptr,wares,payments)
-#receiptSellCorrection(fptr,datetime.datetime(2024, 2, 10),wares,payments)
-#receiptSellReturnCorrection(fptr,datetime.datetime(2024, 2, 10),wares,payments)
-#lastFd = getLastFd(fptr)
-#fdNumber = 75
-for receipt in ofdDocuments:
-    # fptr.setParam(IFptr.LIBFPTR_PARAM_FN_DATA_TYPE, IFptr.LIBFPTR_FNDT_DOCUMENT_BY_NUMBER)
-    # fptr.setParam(IFptr.LIBFPTR_PARAM_DOCUMENT_NUMBER, fdNumber)
-    # fptr.fnQueryData()
-    # fdType = fptr.getParamInt(IFptr.LIBFPTR_PARAM_FN_DOCUMENT_TYPE)
-    # if fdType in [IFptr.LIBFPTR_FN_DOC_RECEIPT]:
-    #     receiptType = fptr.getParamInt(1054)
-    #     receipt = receiptsRead(fptr,fdNumber)
-    #     # Приход
-    #     if receiptType == 1:
-    #         receiptSellCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
-    #         pass
-    #     # Возврат прихода
-    #     elif receiptType == 2:
-    #         receiptSellReturnCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
-    print("#" + str(receipt['fdNumber']))
-    receiptType = receipt['receiptType']
-    closeResult = -1
-    while closeResult != 0:
-        # Приход
-        if receiptType == 1:
-            closeResult = receiptSellCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
-        # Возврат прихода
-        elif receiptType == 2:
-            closeResult = receiptSellReturnCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
-
-#receiptShowReadable(fptr,lastFd)
-
-fptr.close()
+ofdProvider = 2
+newTaxType = 32
+changeTaxType(fdLinks,ofdProvider,newTaxType)
