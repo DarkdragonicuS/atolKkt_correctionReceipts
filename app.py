@@ -1,4 +1,4 @@
-import json,os,datetime,requests,csv,zipfile,io,pytz
+import json,os,datetime,requests,csv,zipfile,io
 from dateutil import parser
 from libfptr10 import IFptr
 def readNextRecord(fptr, recordsID):
@@ -409,47 +409,6 @@ def getLastFd(fptr):
     documentNumber = fptr.getParamInt(IFptr.LIBFPTR_PARAM_DOCUMENT_NUMBER)
     return documentNumber
 
-def testOFDRequest():
-    url = 'https://lk.ofd.ru/api/Customer/GetJsonDoc'
-    headers = {
-        'User-Agent': 'Python',
-        'Cookie': 'AccountId=31b1b0b7-25bd-48ea-a86f-979548ccf446; PAC=1b5a62cc880b4e488f163efe448988b9; __tld__=1; _ga=GA1.1.406361591.1693783201; _ga_8HBC3V0VTR=GS1.1.1720414614.10.1.1720414619.55.0.0; _ga_W8TH1SH892=GS1.1.1717385512.3.1.1717385814.60.0.0; _ga_XW1X8VJT30=GS1.1.1695959639.1.0.1695959653.46.0.0; _ga_ZTC58DJMM1=GS1.1.1720420102.43.1.1720420103.59.0.0; _gat_UA-82171814-1=1; _gat_gtag_UA_82171814_8=1; _gcl_au=1.1.1899924538.1720402910; _gid=GA1.2.935196095.1720402911; _ym_d=1712361498; _ym_isad=2; _ym_uid=1688530152942837413; _ym_visorc=w; amplitude_id_603b179472aad88aa4567a6cedc64e96ofd.ru=eyJkZXZpY2VJZCI6ImNlYzg2ZWY5LTEzMjQtNDNhOS1iNjA2LWJkZGU2MGI4MWM1ZVIiLCJ1c2VySWQiOm51bGwsIm9wdE91dCI6ZmFsc2UsInNlc3Npb25JZCI6MTcyMDQyMDEwMzE3MSwibGFzdEV2ZW50VGltZSI6MTcyMDQyMDEwMzE3MSwiZXZlbnRJZCI6MCwiaWRlbnRpZnlJZCI6MCwic2VxdWVuY2VOdW1iZXIiOjB9; amplitude_id_da5181626648980c03d65ae32e09af62ofd.ru=eyJkZXZpY2VJZCI6ImMxMjZhNThlLWI4ZWMtNGNjZS1iY2JjLTkwYWY1NjU4YzBlZVIiLCJ1c2VySWQiOiJ1bmRlZmluZWQiLCJvcHRPdXQiOmZhbHNlLCJzZXNzaW9uSWQiOjE2OTU5NTk2MzkwNDYsImxhc3RFdmVudFRpbWUiOjE2OTU5NTk2MzkwNDYsImV2ZW50SWQiOjAsImlkZW50aWZ5SWQiOjAsInNlcXVlbmNlTnVtYmVyIjowfQ==; amplitude_testofd.ru=MC4xNzIxNTAxODEyMzU5NjI3; metrika_enabled=1; tmr_lvid=f1ad8726f355e1835ef99fd4175fd267; tmr_lvidTS=1688530155583; _ga=GA1.3.406361591.1693783201; _gat_UA-82171814-8=1; _gid=GA1.3.935196095.1720402911'
-    }
-    params = {
-        'KktAgreementId': '6bb8ca48-af7f-4409-8156-f1a9200afe02 ',
-        'DocNumber': '7452',
-        'CustomFnNumber': '7280440500221229'
-    }
-    # cookies = {
-    #     '_ym_uid': '1688530152942837413',
-    #     'tmr_lvid': 'f1ad8726f355e1835ef99fd4175fd267',
-    #     'tmr_lvidTS': '1688530155583',
-    #     'amplitude_id_da5181626648980c03d65ae32e09af62ofd.ru': 'eyJkZXZpY2VJZCI6ImMxMjZhNThlLWI4ZWMtNGNjZS1iY2JjLTkwYWY1NjU4YzBlZVIiLCJ1c2VySWQiOiJ1bmRlZmluZWQiLCJvcHRPdXQiOmZhbHNlLCJzZXNzaW9uSWQiOjE2OTU5NTk2MzkwNDYsImxhc3RFdmVudFRpbWUiOjE2OTU5NTk2MzkwNDYsImV2ZW50SWQiOjAsImlkZW50aWZ5SWQiOjAsInNlcXVlbmNlTnVtYmVyIjowfQ==',
-    #     '_ga_XW1X8VJT30': 'GS1.1.1695959639.1.0.1695959653.46.0.0',
-    #     '_ga': 'GA1.3.406361591.1693783201',
-    #     '_ym_d': '1712361498',
-    #     '_ga_W8TH1SH892': 'GS1.1.1717385512.3.1.1717385814.60.0.0',
-    #     '_gcl_au': '1.1.1899924538.1720402910',
-    #     '_ym_isad': '2',
-    #     '_gid': 'GA1.2.935196095.1720402911',
-    #     '_gid': 'GA1.3.935196095.1720402911',
-    #     '_ga_8HBC3V0VTR': 'GS1.1.1720414614.10.1.1720414619.55.0.0',
-    #     'PAC': '1b5a62cc880b4e488f163efe448988b9',
-    #     'AccountId': '31b1b0b7-25bd-48ea-a86f-979548ccf446',
-    #     'amplitude_id_603b179472aad88aa4567a6cedc64e96ofd.ru': 'eyJkZXZpY2VJZCI6ImNlYzg2ZWY5LTEzMjQtNDNhOS1iNjA2LWJkZGU2MGI4MWM1ZVIiLCJ1c2VySWQiOm51bGwsIm9wdE91dCI6ZmFsc2UsInNlc3Npb25JZCI6MTcyMDQyMDEwMzE3MSwibGFzdEV2ZW50VGltZSI6MTcyMDQyMDEwMzE3MSwiZXZlbnRJZCI6MCwiaWRlbnRpZnlJZCI6MCwic2VxdWVuY2VOdW1iZXIiOjB9',
-    #     '_ga_ZTC58DJMM1': 'GS1.1.1720420102.43.1.1720420103.59.0.0',
-    #     #'_ga': 'GA1.1.406361591.1693783201',
-    #     '_ym_visorc': 'w'
-    # }
-    try:
-        response = requests.get(url=url,headers=headers,params=params)
-        responseObj = json.loads(response.text)
-    except ConnectionError:
-        pass
-    except:
-        pass
-    return 0
-
 def getReceiptFromTlv(tlv):  
     wares = []
     payments = []      
@@ -755,6 +714,8 @@ def changeTaxType(fdLinks,ofdProvider,newTaxType):
     fptr.close()
 
 fdLinks = "C:\\fdLinks.csv"
+# ofdProvider = 2
+# newTaxType = 32
+# changeTaxType(fdLinks,ofdProvider,newTaxType)
 ofdProvider = 2
-newTaxType = 32
-changeTaxType(fdLinks,ofdProvider,newTaxType)
+addMeasureUnit(fdLinks,ofdProvider)
