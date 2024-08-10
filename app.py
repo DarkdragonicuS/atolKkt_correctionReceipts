@@ -105,12 +105,6 @@ def registration(fptr,wareName,price,quantity,sum,tax,measureUnit=0):
 
 # Оплата в чеке
 def payment(fptr,type,sum):
-    # if type == 0:
-    #     fptr.setParam(IFptr.LIBFPTR_PARAM_PAYMENT_TYPE,IFptr.LIBFPTR_PT_CASH)
-    # elif type == 1:
-    #     fptr.setParam(IFptr.LIBFPTR_PARAM_PAYMENT_TYPE,IFptr.LIBFPTR_PT_ELECTRONICALLY)
-    # else:
-    #     fptr.setParam(IFptr.LIBFPTR_PARAM_PAYMENT_TYPE,IFptr.LIBFPTR_PT_CASH)
     fptr.setParam(IFptr.LIBFPTR_PARAM_PAYMENT_TYPE,type)
     fptr.setParam(IFptr.LIBFPTR_PARAM_PAYMENT_SUM,sum)
     fptr.payment()
@@ -144,112 +138,13 @@ def receiptClose(fptr):
             continue
     return 0
 
-# isOpened = fptr.isOpened()
-
-# fptr.setParam(IFptr.LIBFPTR_PARAM_DATA_TYPE, IFptr.LIBFPTR_DT_STATUS)
-# fptr.queryData()
-
-# operatorID      = fptr.getParamInt(IFptr.LIBFPTR_PARAM_OPERATOR_ID)
-# logicalNumber   = fptr.getParamInt(IFptr.LIBFPTR_PARAM_LOGICAL_NUMBER)
-# shiftState      = fptr.getParamInt(IFptr.LIBFPTR_PARAM_SHIFT_STATE)
-# model           = fptr.getParamInt(IFptr.LIBFPTR_PARAM_MODEL)
-# mode            = fptr.getParamInt(IFptr.LIBFPTR_PARAM_MODE)
-# submode         = fptr.getParamInt(IFptr.LIBFPTR_PARAM_SUBMODE)
-# receiptNumber   = fptr.getParamInt(IFptr.LIBFPTR_PARAM_RECEIPT_NUMBER)
-# documentNumber  = fptr.getParamInt(IFptr.LIBFPTR_PARAM_DOCUMENT_NUMBER)
-# shiftNumber     = fptr.getParamInt(IFptr.LIBFPTR_PARAM_SHIFT_NUMBER)
-# receiptType     = fptr.getParamInt(IFptr.LIBFPTR_PARAM_RECEIPT_TYPE)
-# documentType    = fptr.getParamInt(IFptr.LIBFPTR_PARAM_DOCUMENT_TYPE)
-# lineLength      = fptr.getParamInt(IFptr.LIBFPTR_PARAM_RECEIPT_LINE_LENGTH)
-# lineLengthPix   = fptr.getParamInt(IFptr.LIBFPTR_PARAM_RECEIPT_LINE_LENGTH_PIX)
-
-# receiptSum = fptr.getParamDouble(IFptr.LIBFPTR_PARAM_RECEIPT_SUM)
-
-# isOperatorRegistered    = fptr.getParamBool(IFptr.LIBFPTR_PARAM_OPERATOR_REGISTERED)
-# isFiscalDevice          = fptr.getParamBool(IFptr.LIBFPTR_PARAM_FISCAL)
-# isFiscalFN              = fptr.getParamBool(IFptr.LIBFPTR_PARAM_FN_FISCAL)
-# isFNPresent             = fptr.getParamBool(IFptr.LIBFPTR_PARAM_FN_PRESENT)
-# isInvalidFN             = fptr.getParamBool(IFptr.LIBFPTR_PARAM_INVALID_FN)
-# isCashDrawerOpened      = fptr.getParamBool(IFptr.LIBFPTR_PARAM_CASHDRAWER_OPENED)
-# isPaperPresent          = fptr.getParamBool(IFptr.LIBFPTR_PARAM_RECEIPT_PAPER_PRESENT)
-# isPaperNearEnd          = fptr.getParamBool(IFptr.LIBFPTR_PARAM_PAPER_NEAR_END)
-# isCoverOpened           = fptr.getParamBool(IFptr.LIBFPTR_PARAM_COVER_OPENED)
-# isPrinterConnectionLost = fptr.getParamBool(IFptr.LIBFPTR_PARAM_PRINTER_CONNECTION_LOST)
-# isPrinterError          = fptr.getParamBool(IFptr.LIBFPTR_PARAM_PRINTER_ERROR)
-# isCutError              = fptr.getParamBool(IFptr.LIBFPTR_PARAM_CUT_ERROR)
-# isPrinterOverheat       = fptr.getParamBool(IFptr.LIBFPTR_PARAM_PRINTER_OVERHEAT)
-# isDeviceBlocked         = fptr.getParamBool(IFptr.LIBFPTR_PARAM_BLOCKED)
-
-# dateTime = fptr.getParamDateTime(IFptr.LIBFPTR_PARAM_DATE_TIME)
-
-# serialNumber    = fptr.getParamString(IFptr.LIBFPTR_PARAM_SERIAL_NUMBER)
-# modelName       = fptr.getParamString(IFptr.LIBFPTR_PARAM_MODEL_NAME)
-# firmwareVersion = fptr.getParamString(IFptr.LIBFPTR_PARAM_UNIT_VERSION)
-
-# fptr.setParam(IFptr.LIBFPTR_PARAM_RECORDS_TYPE, IFptr.LIBFPTR_RT_LAST_DOCUMENT_LINES)
-# fptr.beginReadRecords()
-# recordsID = fptr.getParamString(IFptr.LIBFPTR_PARAM_RECORDS_ID)
-
-# while readNextRecord(fptr, recordsID) == IFptr.LIBFPTR_OK:
-#     textLine        = fptr.getParamString(IFptr.LIBFPTR_PARAM_TEXT)
-#     font            = fptr.getParamInt(IFptr.LIBFPTR_PARAM_FONT)
-#     linespacing     = fptr.getParamInt(IFptr.LIBFPTR_PARAM_LINESPACING)
-#     brightness      = fptr.getParamInt(IFptr.LIBFPTR_PARAM_BRIGHTNESS)
-#     doubleWidth     = fptr.getParamBool(IFptr.LIBFPTR_PARAM_FONT_DOUBLE_WIDTH)
-#     doubleHeight    = fptr.getParamBool(IFptr.LIBFPTR_PARAM_FONT_DOUBLE_HEIGHT)
-
-# fptr.setParam(IFptr.LIBFPTR_PARAM_RECORDS_ID, recordsID)
-# fptr.endReadRecords()
-
-# fptr.setParam(IFptr.LIBFPTR_PARAM_RECORDS_TYPE, IFptr.LIBFPTR_RT_LAST_DOCUMENT_LINES)
-# fptr.beginReadRecords()
-# recordsID = fptr.getParamString(IFptr.LIBFPTR_PARAM_RECORDS_ID)
-
-# while readNextRecord(fptr, recordsID) == IFptr.LIBFPTR_OK:
-#     textLine        = fptr.getParamString(IFptr.LIBFPTR_PARAM_TEXT)
-#     font            = fptr.getParamInt(IFptr.LIBFPTR_PARAM_FONT)
-#     linespacing     = fptr.getParamInt(IFptr.LIBFPTR_PARAM_LINESPACING)
-#     brightness      = fptr.getParamInt(IFptr.LIBFPTR_PARAM_BRIGHTNESS)
-#     doubleWidth     = fptr.getParamBool(IFptr.LIBFPTR_PARAM_FONT_DOUBLE_WIDTH)
-#     doubleHeight    = fptr.getParamBool(IFptr.LIBFPTR_PARAM_FONT_DOUBLE_HEIGHT)
-
-# fptr.setParam(IFptr.LIBFPTR_PARAM_RECORDS_ID, recordsID)
-# fptr.endReadRecords()
-
 def receiptShowReadable(fptr,fdNumber):
     fptr.setParam(IFptr.LIBFPTR_PARAM_RECORDS_TYPE, IFptr.LIBFPTR_RT_FN_DOCUMENT_TLVS)
     fptr.setParam(IFptr.LIBFPTR_PARAM_DOCUMENT_NUMBER, fdNumber)
     fptr.beginReadRecords()
 
-    #documentType = fptr.getParamInt(IFptr.LIBFPTR_PARAM_FN_DOCUMENT_TYPE)
-    #documentSize = fptr.getParamInt(IFptr.LIBFPTR_PARAM_COUNT)
     recordsID = fptr.getParamString(IFptr.LIBFPTR_PARAM_RECORDS_ID)
 
-# fdList = []
-# if(documentType == fptr.LIBFPTR_FN_DOC_RECEIPT):
-#     fdTags = []
-#     while readNextRecord(fptr, recordsID) == IFptr.LIBFPTR_OK:
-#         tagValue      = fptr.getParamByteArray(IFptr.LIBFPTR_PARAM_TAG_VALUE)
-#         tagNumber     = fptr.getParamInt(IFptr.LIBFPTR_PARAM_TAG_NUMBER)
-#         tagName       = fptr.getParamString(IFptr.LIBFPTR_PARAM_TAG_NAME)
-#         tagType       = fptr.getParamInt(IFptr.LIBFPTR_PARAM_TAG_TYPE)
-#         tagIsComplex  = fptr.getParamBool(IFptr.LIBFPTR_PARAM_TAG_IS_COMPLEX)
-#         tagRepeatable = fptr.getParamBool(IFptr.LIBFPTR_PARAM_TAG_IS_REPEATABLE)
-#         fdTags.append({"value": tagValue,
-#                    "number": tagNumber,
-#                    "name": tagName,
-#                    "type": tagType,
-#                    "isComplex": tagIsComplex,
-#                    "repeatable": tagRepeatable})
-#     fd = {"number": fdNumber,
-#             "tags": fdTags}
-#     fdList.append(fd)
-#     fdListSerialized = json.dumps(fdList)
-
-# fptr.setParam(IFptr.LIBFPTR_PARAM_RECORDS_ID, recordsID)
-# fptr.endReadRecords()
-
-# fptr.close()
 
     result = ''
     while read_next_record(fptr, recordsID) == 0:
@@ -617,43 +512,7 @@ def addMeasureUnit(fdLinks,ofdProvider):
 
     fptr.open()
 
-    # ware1 = {"wareName": "AIME Гель д/душа с дозатором Delicate-уход 700мл",
-    #         "price": 122.2,
-    #         "quantity": 3,
-    #         "sum": 366.6,
-    #         "tax": 6}
-    # ware2 = {"wareName": "AIME Крем-мыло д/интим.ухода с экст.жасмина 300 мл",
-    #         "price": 78.6,
-    #         "quantity": 2,
-    #         "sum": 157.2,
-    #         "tax": 6}
-    # wares = [ware1,ware2]
-
-
-    # payment1 = {"type": IFptr.LIBFPTR_PT_CASH, "sum": 500}
-    # payment2 = {"type": IFptr.LIBFPTR_PT_ELECTRONICALLY, "sum": 23.8}
-    # payments = [payment1,payment2]
-
-    #receiptSell(fptr,wares,payments)
-    #receiptSellCorrection(fptr,datetime.datetime(2024, 2, 10),wares,payments)
-    #receiptSellReturnCorrection(fptr,datetime.datetime(2024, 2, 10),wares,payments)
-    #lastFd = getLastFd(fptr)
-    #fdNumber = 75
     for receipt in ofdDocuments:
-        # fptr.setParam(IFptr.LIBFPTR_PARAM_FN_DATA_TYPE, IFptr.LIBFPTR_FNDT_DOCUMENT_BY_NUMBER)
-        # fptr.setParam(IFptr.LIBFPTR_PARAM_DOCUMENT_NUMBER, fdNumber)
-        # fptr.fnQueryData()
-        # fdType = fptr.getParamInt(IFptr.LIBFPTR_PARAM_FN_DOCUMENT_TYPE)
-        # if fdType in [IFptr.LIBFPTR_FN_DOC_RECEIPT]:
-        #     receiptType = fptr.getParamInt(1054)
-        #     receipt = receiptsRead(fptr,fdNumber)
-        #     # Приход
-        #     if receiptType == 1:
-        #         receiptSellCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
-        #         pass
-        #     # Возврат прихода
-        #     elif receiptType == 2:
-        #         receiptSellReturnCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
         print("#" + str(receipt['fdNumber']))
         receiptType = receipt['receiptType']
         closeResult = -1
@@ -664,8 +523,6 @@ def addMeasureUnit(fdLinks,ofdProvider):
             # Возврат прихода
             elif receiptType == 2:
                 closeResult = receiptSellReturnCorrection(fptr,receipt['fdDate'],receipt['wares'],receipt['payments'])
-
-    #receiptShowReadable(fptr,lastFd)
 
     fptr.close()
 
