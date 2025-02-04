@@ -60,7 +60,8 @@ def end_read_records(fptr, records_id):
 
 # Открытие чека прихода
 def ReceiptSellOpen(fptr):
-    fptr.setParam(1021, "Системный администратор")
+    #fptr.setParam(1021, "Системный администратор")
+    fptr.setParam(1021, cashier)
     #fptr.setParam(1203, "123456789047")
     fptr.operatorLogin()
 
@@ -574,5 +575,6 @@ fdLinks = "C:\\fdLinks.csv"
 # ofdProvider = 2
 # newTaxType = 32
 # changeTaxType(fdLinks,ofdProvider,newTaxType)
-ofdProvider = 2
+ofdProvider = 1
+cashier = "Гусейнов Анар Фахраддин Оглы"
 addMeasureUnit(fdLinks,ofdProvider)
